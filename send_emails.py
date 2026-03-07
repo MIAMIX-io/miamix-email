@@ -74,7 +74,8 @@ def main():
     env = Environment(loader=FileSystemLoader("emails"))
     template = env.get_template("email_template.html")
 
-    with open("emails/OutreachTulum-20260113.html", encoding="utf-8") as f:
+    # UPDATE: Pointing to the new App Dev Outreach file
+    with open("emails/OutreachAppDev-20260307.html", encoding="utf-8") as f:
         outreach_html = f.read()
 
     for page in pages:
@@ -90,8 +91,9 @@ def main():
 
             log(f"➡ Sending to {name} <{email}>")
 
+            # UPDATE: New newsletter title injected into the template
             html = template.render(
-                newsletter_title="GLOBALMIX launches in Tulum — Join the network",
+                newsletter_title="MIAMIX App Beta - Sneak Peek",
                 name=name,
                 background_color="#F5F5F5",
                 brand_color="#E136C4",
@@ -99,7 +101,8 @@ def main():
             )
 
             msg = EmailMessage()
-            msg["Subject"] = "GLOBALMIX launches in Tulum — Join the network"
+            # UPDATE: New subject line for the email inbox
+            msg["Subject"] = "Exclusive Sneak Peek: Test the New MIAMIX App"
             msg["From"] = formataddr(("MIAMIX", "no-reply@miamix.io"))
             msg["To"] = email
             msg["Reply-To"] = "info@miamix.io"
