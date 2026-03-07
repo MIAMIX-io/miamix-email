@@ -36,7 +36,7 @@ def main():
     query_payload = {
         "filter": {
             "property": "Status",
-            "select": {"equals": "Send Email"}
+            "status": {"equals": "Send Email"}
         }
     }
 
@@ -114,7 +114,7 @@ def main():
             # UPDATED: Changes Status to "Sent" so they don't get emailed twice
             update_payload = {
                 "properties": {
-                    "Status": {"select": {"name": "Email Sent"}}
+                    "Status": {"status": {"name": "Email Sent"}}
                 }
             }
 
