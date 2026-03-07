@@ -114,7 +114,7 @@ def main():
             # UPDATED: Changes Status to "Sent" so they don't get emailed twice
             update_payload = {
                 "properties": {
-                    "Status": {"select": {"name": "Sent"}}
+                    "Status": {"select": {"name": "Email Sent"}}
                 }
             }
 
