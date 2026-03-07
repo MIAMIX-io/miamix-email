@@ -8,10 +8,8 @@ from jinja2 import Environment, FileSystemLoader
 NOTION_API = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
 
-
 def log(msg):
     print(msg, flush=True)
-
 
 def notion_headers(token):
     return {
@@ -19,7 +17,6 @@ def notion_headers(token):
         "Notion-Version": NOTION_VERSION,
         "Content-Type": "application/json",
     }
-
 
 def main():
     log("🚀 SCRIPT INITIALIZING")
@@ -35,18 +32,11 @@ def main():
     # --- Query Notion (RAW API) ---
     log("🔍 Querying Notion database")
 
+    # UPDATED: Matches your exact Notion 'Status' column setting it to "Send Email"
     query_payload = {
         "filter": {
-            "and": [
-                {
-                    "property": "Status",
-                    "status": {"equals": "Ready to Send"}
-                },
-                {
-                    "property": "Send Email",
-                    "select": {"equals": "Yes"}
-                }
-            ]
+            "property": "Status",
+            "select": {"equals": "Send Email"}
         }
     }
 
@@ -61,7 +51,7 @@ def main():
         raise RuntimeError(f"❌ Notion query failed: {res.text}")
 
     pages = res.json().get("results", [])
-    log(f"📬 Found {len(pages)} contacts")
+    log(f"📬 Found {len(pages)} contacts to email")
 
     if not pages:
         return
@@ -74,7 +64,6 @@ def main():
     env = Environment(loader=FileSystemLoader("emails"))
     template = env.get_template("email_template.html")
 
-    # UPDATE: Pointing to the new App Dev Outreach file
     with open("emails/OutreachAppDev-20260307.html", encoding="utf-8") as f:
         outreach_html = f.read()
 
@@ -82,16 +71,25 @@ def main():
         try:
             props = page["properties"]
 
-            title = props["Contact"]["title"]
-            name = title[0]["plain_text"] if title else "there"
+            # UPDATED: Fetches from "Contact Name", falls back to "Brand Name" if empty
+            contact_name_prop = props.get("Contact Name", {}).get("rich_text", [])
+            brand_name_prop = props.get("Brand Name", {}).get("title", [])
+            
+            if contact_name_prop:
+                name = contact_name_prop[0]["plain_text"]
+            elif brand_name_prop:
+                name = brand_name_prop[0]["plain_text"]
+            else:
+                name = "Partner"
 
-            email = props["Email"]["email"]
+            # UPDATED: Fetches from your "Contact Email" column
+            email = props.get("Contact Email", {}).get("email")
             if not email:
-                raise ValueError("Missing email")
+                log(f"⚠ Skipping {name} - No email address found.")
+                continue
 
             log(f"➡ Sending to {name} <{email}>")
 
-            # UPDATE: New newsletter title injected into the template
             html = template.render(
                 newsletter_title="MIAMIX App Beta - Sneak Peek",
                 name=name,
@@ -101,7 +99,6 @@ def main():
             )
 
             msg = EmailMessage()
-            # UPDATE: New subject line for the email inbox
             msg["Subject"] = "Exclusive Sneak Peek: Test the New MIAMIX App"
             msg["From"] = formataddr(("MIAMIX", "no-reply@miamix.io"))
             msg["To"] = email
@@ -114,10 +111,10 @@ def main():
             log("✅ Email sent")
 
             # --- Update Notion ---
+            # UPDATED: Changes Status to "Sent" so they don't get emailed twice
             update_payload = {
                 "properties": {
-                    "Status": {"status": {"name": "Sent"}},
-                    "Send Email": {"select": {"name": "No"}}
+                    "Status": {"select": {"name": "Sent"}}
                 }
             }
 
@@ -131,14 +128,13 @@ def main():
             if not upd.ok:
                 log(f"⚠ Notion update failed: {upd.text}")
             else:
-                log("🔄 Notion updated")
+                log("🔄 Notion Status updated to 'Sent'")
 
         except Exception as e:
             log(f"❌ ROW ERROR: {e}")
 
     smtp.quit()
     log("🏁 SCRIPT COMPLETE")
-
 
 if __name__ == "__main__":
     main()
